@@ -1,55 +1,70 @@
-function formatGeminiResponse(data) {
-    // Check if data and data.response are defined
-    if (!data || !data.response) {
-        const errorContainer = document.createElement('div');
-        errorContainer.textContent = "Invalid response from the server.";
-        return errorContainer; // Return an error message
+async function handleBotResponse(response) {
+    const text = await response.text();
+    console.log('Raw Response:', text); // Log the raw response text for debugging
+
+    try {
+        // Combine all the response segments into one single string
+        const segments = text.match(/{"response":".*?"}/g); // Extract individual JSON objects
+        const combinedResponse = segments.map(segment => JSON.parse(segment).response).join(' '); // Parse and join
+
+        console.log('Combined Response:', combinedResponse); // Log the combined response
+
+        const cleanedResponse = combinedResponse
+            .replace(/(\*\*.*?\*\*)/g, '<strong>$1</strong>') // Convert double asterisks to strong tags
+            .replace(/\*/g, '') // Remove single asterisks
+            .replace(/\n/g, '<br>') // Replace newlines with HTML line breaks
+            .trim(); // Trim leading and trailing whitespace
+
+        console.log('Cleaned Response:', cleanedResponse); // Log cleaned response
+        appendMessage(cleanedResponse, 'bot'); // Use the cleaned HTML directly
+    } catch (error) {
+        console.error('Error parsing response:', error);
+        appendMessage("Sorry, there was an error retrieving the response.", 'bot');
     }
+}
 
-    // Extract the response string
-    const responseText = data.response;
 
-    // Create a container for the formatted response
+function formatGeminiResponse(responseText) {
     const responseContainer = document.createElement('div');
     responseContainer.classList.add('bot-message');
 
-    // Split the text into sections based on code blocks
-    const sections = responseText.split(/(?=\`\`\`c#)/g); // Match code blocks starting with '```c#'
+    // Split the response into sections based on formatting markers
+    const sections = responseText.split(/(?=<strong>|<li>)/g); // Match bold and list items
 
     sections.forEach(section => {
-        // Trim whitespace
         section = section.trim();
 
-        if (section.startsWith('```c#')) {
-            // Detect code block for C#
-            const codeBlock = section.replace(/```c#/g, '').replace(/```/g, '').trim();
-            const codeElement = document.createElement('pre');
-            codeElement.classList.add('code-block');
-
-            // Format the code
-            codeElement.innerHTML = formatCode(codeBlock);
-            responseContainer.appendChild(codeElement);
+        if (section.startsWith('<li>')) {
+            const listItem = document.createElement('li');
+            listItem.innerHTML = section.replace('<li>', '').replace('</li>', ''); // Use innerHTML to allow HTML tags
+            responseContainer.appendChild(listItem);
         } else {
-            // Regular text handling can be added here if needed
-            const textElement = document.createElement('p');
-            textElement.textContent = section;
-            responseContainer.appendChild(textElement);
+            if (section.startsWith('<strong>') && section.endsWith('</strong>')) {
+                const boldElement = document.createElement('p');
+                boldElement.innerHTML = section; // Use innerHTML to allow HTML tags
+                responseContainer.appendChild(boldElement);
+            } else if (section) {
+                const textElement = document.createElement('p');
+                textElement.innerHTML = section; // Use innerHTML to render any HTML tags
+                responseContainer.appendChild(textElement);
+            }
         }
     });
 
+    // Create a styled unordered list if there are list items
+    if (responseContainer.querySelector('li')) {
+        const ul = document.createElement('ul');
+        responseContainer.childNodes.forEach(child => {
+            if (child.tagName === 'LI') {
+                ul.appendChild(child);
+            }
+        });
+        responseContainer.innerHTML = ''; // Clear the container
+        responseContainer.appendChild(ul); // Append the list to the container
+    }
+
     return responseContainer;
 }
-
-// Function to format code with specific styles
-function formatCode(code) {
-    // Replace keywords, methods, data types, and comments with span elements
-    return code
-        .replace(/(class|static|void|int|string|using|namespace|if|else|return|while|for|foreach)/g, '<span class="keyword">$1</span>')
-        .replace(/(\w+\s*\([^)]*\)\s*{)/g, '<span class="method">$1</span>') // Match methods/functions
-        .replace(/(int|string|double|float|bool)/g, '<span class="datatype">$1</span>') // Match data types
-        .replace(/(\/\/.*?$)/gm, '<span class="comment">$1</span>'); // Match comments
-}
-
 
 function appendMessage(message, type) {
     const chatMessages = document.getElementById('chatMessages');
@@ -58,27 +73,14 @@ function appendMessage(message, type) {
 
     if (type === 'user') {
         messageElement.classList.add('user-message');
-        messageElement.textContent = message;
+        messageElement.textContent = message; // For user messages, keep as textContent for safety
     } else {
         messageElement.classList.add('bot-message');
-        const formattedResponse = formatGeminiResponse(message);
-        messageElement.appendChild(formattedResponse);
+        messageElement.innerHTML = message; // Use innerHTML for bot messages to render HTML
     }
 
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
-}
-// Update the user and bot message calls
-async function handleBotResponse(response) {
-    const data = await response.json();
-    console.log(data); // Log the response for debugging
-
-    // Check if the response property exists
-    if (data && data.response) {
-        appendMessage(data, 'bot'); // Send as bot message
-    } else {
-        appendMessage("Sorry, there was an error retrieving the response.", 'bot');
-    }
 }
 
 
@@ -106,4 +108,3 @@ document.getElementById('sendButton').addEventListener('click', async function (
         }
     }
 });
-
