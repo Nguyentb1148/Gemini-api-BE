@@ -11,7 +11,8 @@ async function handleBotResponse(response) {
 
         const cleanedResponse = combinedResponse
             .replace(/(\*\*.*?\*\*)/g, '<strong>$1</strong>') // Convert double asterisks to strong tags
-            .replace(/\*/g, '') // Remove single asterisks
+            .replace(/```(.*?)\n([\s\S]*?)```/g, (match, lang, code) => createCodeSnippet(lang, code).outerHTML) // Convert code blocks
+            .replace(/\*\s*(.*?)\s*\*/g, '<code>$1</code>') // Convert single asterisks to code tags for inline code
             .replace(/\n/g, '<br>') // Replace newlines with HTML line breaks
             .trim(); // Trim leading and trailing whitespace
 
@@ -21,6 +22,28 @@ async function handleBotResponse(response) {
         console.error('Error parsing response:', error);
         appendMessage("Sorry, there was an error retrieving the response.", 'bot');
     }
+}
+function createCodeSnippet(language, code) {
+    // Create a div for the code snippet
+    const codeSnippetContainer = document.createElement('div');
+    codeSnippetContainer.classList.add('code-snippet');
+
+    // Create a pre and code element for highlight.js
+    const pre = document.createElement('pre');
+    const codeElement = document.createElement('code');
+    
+    // Set the language class for highlight.js
+    codeElement.className = `language-${language}`;
+    codeElement.textContent = code; // Set the code text
+
+    // Append code to pre, then pre to the container
+    pre.appendChild(codeElement);
+    codeSnippetContainer.appendChild(pre);
+
+    // Highlight the code
+    hljs.highlightElement(codeElement);
+
+    return codeSnippetContainer;
 }
 
 
@@ -84,6 +107,7 @@ function appendMessage(message, type) {
 }
 
 
+// Adjusted event listener
 document.getElementById('sendButton').addEventListener('click', async function () {
     const userInput = document.getElementById('userInput');
     const message = userInput.value;

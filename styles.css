@@ -138,3 +138,15 @@ body {
 .bot-message h3, .bot-message h4 {
     margin: 10px 0;
 }
+.code-snippet {
+    background-color: #1e1e1e; /* Dark background */
+    color: #dcdcdc; /* Light text color */
+    padding: 10px; /* Some padding */
+    border-radius: 5px; /* Rounded corners */
+    overflow-x: auto; /* Allow horizontal scrolling for long lines */
+    margin: 10px 0; /* Space above and below code blocks */
+}
+
+pre {
+    margin: 0; /* Remove default margin from <pre> */
+}

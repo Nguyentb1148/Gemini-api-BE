@@ -5,6 +5,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Chatbot</title>
     <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="./highlight/styles/default.css"> <!-- Choose a theme -->
+    <script src="./highlight/highlight.js"></script> <!-- Include the highlight.js -->
 </head>
 <body>
     <div class="chat-container">
@@ -20,5 +22,10 @@
         </div>
     </div>
     <script src="script.js"></script>
+    <script src="codeFormatter.js"></script> <!-- Include the new file -->
+    <script>
+        // Initialize highlight.js
+        hljs.initHighlightingOnLoad();
+    </script>
 </body>
 </html>

@@ -41,3 +41,7 @@ app.post("/api/chat", async (req, res) => {
         res.status(500).json({ error: "Internal Server Error" }); // hi
     }
 });
+// Start the server
+app.listen(PORT, () => {
+    console.log(`Server is running on http://localhost:${PORT}`);
+});
