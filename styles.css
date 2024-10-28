@@ -1,6 +1,6 @@
 body {
     font-family: 'Arial', sans-serif;
-    background-color: #f4f4f4; /* Lighter background for better contrast */
+    background-color: #f4f4f4; 
     margin: 0;
     padding: 0;
 }
@@ -43,13 +43,13 @@ body {
 .user-message {
     background-color: #007BFF;
     color: white;
-    align-self: flex-end; /* Align user messages to the right */
+    align-self: flex-end; 
 }
 
 .bot-message {
     background-color: #eaeaea;
     color: black;
-    align-self: flex-start; /* Align bot messages to the left */
+    align-self: flex-start; 
 }
 
 .chat-input {
@@ -63,12 +63,12 @@ body {
     border: 1px solid #ccc;
     border-radius: 5px;
     margin-right: 10px;
-    transition: border-color 0.3s; /* Smooth transition */
+    transition: border-color 0.3s;
 }
 
 .chat-input input:focus {
-    border-color: #007BFF; /* Highlight border on focus */
-    outline: none; /* Remove default outline */
+    border-color: #007BFF;
+    outline: none; 
 }
 
 .chat-input button {
@@ -78,76 +78,63 @@ body {
     border: none;
     border-radius: 5px;
     cursor: pointer;
-    transition: background-color 0.3s; /* Smooth transition */
+    transition: background-color 0.3s; 
 }
 
 .chat-input button:hover {
     background-color: #0056b3;
 }
-
-.bot-message h3 {
-    font-size: 1.2em;
-    margin: 10px 0 5px 0;
-}
-
-.bot-message h4 {
-    font-size: 1em;
-    margin: 10px 0 5px 0;
-    color: #007BFF; /* Use a distinct color for section titles */
-}
-
-.bot-message .code-block {
-    background-color: #f0f0f0; /* Light gray background for code blocks */
-    border: 1px solid #ccc; /* Light border for code blocks */
-    border-radius: 5px; /* Rounded corners */
-    padding: 10px; /* Padding for better spacing */
-    overflow-x: auto; /* Horizontal scroll for long lines */
-    white-space: pre; /* Preserve white spaces */
-    font-family: 'Courier New', Courier, monospace; /* Monospace font for code */
-}
-
-.bot-message ul {
-    list-style-type: disc;
-    margin: 10px 0;
-    padding-left: 20px; /* Indent list items */
-}
-
-.bot-message ul li {
-    margin: 5px 0; /* Add spacing between list items */
-}
-.code-block {
-    background-color: #f4f4f4; /* Light background for the code block */
-    border: 1px solid #ccc; /* Border for better visibility */
-    border-radius: 5px; /* Rounded corners */
-    padding: 10px; /* Padding for spacing */
-    overflow-x: auto; /* Allow horizontal scrolling */
-    font-family: 'Courier New', Courier, monospace; /* Monospace font for code */
-    white-space: pre-wrap; /* Preserve whitespace */
-}
-.code-block {
-    background-color: #f0f0f0; /* Light background for code */
-    padding: 15px;
+/* Update the styling for bot messages */
+.bot-message {
+    background-color: #eaeaea; /* Light grey for bot messages */
+    color: black;
+    align-self: flex-start;
+    padding: 10px;
     border-radius: 5px;
-    overflow-x: auto; /* Enable horizontal scrolling */
-    font-family: 'Courier New', Courier, monospace; /* Monospace font for code */
-    white-space: pre; /* Preserve whitespace */
+    margin: 10px 0;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
 }
 
+/* Style the code blocks */
+.bot-message .code-block {
+    background-color: #f0f0f0; 
+    border: 1px solid #ccc; 
+    border-radius: 5px; 
+    padding: 10px; 
+    overflow-x: auto; 
+    white-space: pre; 
+    font-family: 'Courier New', Courier, monospace; 
+    margin: 10px 0; /* Add margin for spacing */
+}
+
+/* Style the list items */
+.bot-message ul {
+    list-style-type: disc; /* Disc for bullet points */
+    margin: 10px 0;
+    padding-left: 20px; 
+}
+
+/* Style for the keyword, method, datatype, and comment */
 .keyword {
-    color: #007BFF; /* Blue for keywords like 'class', 'static', 'void' */
+    color: #007BFF; 
     font-weight: bold;
 }
 
 .method {
-    color: #28a745; /* Green for methods and functions */
+    color: #28a745; 
     font-weight: bold;
 }
 
 .datatype {
-    color: #ff6b6b; /* Red for data types like 'int', 'string' */
+    color: #ff6b6b; 
 }
 
 .comment {
-    color: #6c757d; /* Gray for comments */
-    font-style: italic; /* Italics for comments */
+    color: #6c757d; 
+    font-style: italic; 
+}
+
+/* Additional styles for the headers */
+.bot-message h3, .bot-message h4 {
+    margin: 10px 0;
 }

@@ -18,27 +18,26 @@ app.post("/api/chat", async (req, res) => {
     const userInput = req.body.input;
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const start = Date.now();
+    let responseText = ""; // Initialize an empty string to accumulate responses
 
     try {
+        // Using generateContentStream to collect all parts into one string
         const result = await model.generateContentStream([userInput]);
-        let responseText = "";
 
-        // This part is important to send each chunk back to the client
+        // Collect all chunks into responseText
         for await (const chunk of result.stream) {
-            responseText += chunk.text();
-            // Send the current chunk to the client
-            res.write(JSON.stringify({ response: chunk.text() })); // Stream each chunk as it arrives
+            responseText += chunk.text(); // Concatenate text from each chunk
         }
+
+        // Send the complete response once all chunks are processed
+        res.json({ response: responseText });
+
+        console.log("Full Response:", responseText);
 
         const end = Date.now();
         console.log("Response time (ms):", end - start);
-        res.end(); // End the response when the stream is complete
     } catch (error) {
         console.error("Error:", error);
         res.status(500).json({ error: "Internal Server Error" });
     }
-});
-
-app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
 });
