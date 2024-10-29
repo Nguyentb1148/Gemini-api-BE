@@ -1,28 +1,39 @@
+const context = [];
+const MAX_CONTEXT_LENGTH = 5; 
+
 async function handleBotResponse(response) {
     const text = await response.text();
     console.log('Raw Response:', text); // Log the raw response text for debugging
 
     try {
-        // Combine all the response segments into one single string
-        const segments = text.match(/{"response":".*?"}/g); // Extract individual JSON objects
-        const combinedResponse = segments.map(segment => JSON.parse(segment).response).join(' '); // Parse and join
+        // Extract response text without repeating previous answers
+        const responseText = text.replace(/{"response":".*?"}/g, (match) => {
+            const currentResponse = JSON.parse(match).response;
+            const finalResponse = lastResponse ? currentResponse.replace(lastResponse, '') : currentResponse;
+            lastResponse = finalResponse; // Update lastResponse to current
+            return finalResponse.trim(); // Return cleaned response
+        }).trim();
 
-        console.log('Combined Response:', combinedResponse); // Log the combined response
+        if (responseText) {
+            const cleanedResponse = responseText
+                .replace(/(\*\*.*?\*\*)/g, '<strong>$1</strong>') // Convert double asterisks to strong tags
+                .replace(/```(.*?)\n([\s\S]*?)```/g, (match, lang, code) => createCodeSnippet(lang, code).outerHTML) // Convert code blocks
+                .replace(/\*\s*(.*?)\s*\*/g, '<code>$1</code>') // Convert single asterisks to code tags for inline code
+                .replace(/\n/g, '<br>') // Replace newlines with HTML line breaks
+                .trim(); // Trim leading and trailing whitespace
 
-        const cleanedResponse = combinedResponse
-            .replace(/(\*\*.*?\*\*)/g, '<strong>$1</strong>') // Convert double asterisks to strong tags
-            .replace(/```(.*?)\n([\s\S]*?)```/g, (match, lang, code) => createCodeSnippet(lang, code).outerHTML) // Convert code blocks
-            .replace(/\*\s*(.*?)\s*\*/g, '<code>$1</code>') // Convert single asterisks to code tags for inline code
-            .replace(/\n/g, '<br>') // Replace newlines with HTML line breaks
-            .trim(); // Trim leading and trailing whitespace
-
-        console.log('Cleaned Response:', cleanedResponse); // Log cleaned response
-        appendMessage(cleanedResponse, 'bot'); // Use the cleaned HTML directly
+            console.log('Cleaned Response:', cleanedResponse); // Log cleaned response
+            appendMessage(cleanedResponse, 'bot'); // Use the cleaned HTML directly
+        } else {
+            appendMessage("Sorry, there was an error retrieving the response.", 'bot');
+        }
     } catch (error) {
         console.error('Error parsing response:', error);
         appendMessage("Sorry, there was an error retrieving the response.", 'bot');
     }
 }
+
+
 function createCodeSnippet(language, code) {
     // Create a div for the code snippet
     const codeSnippetContainer = document.createElement('div');
@@ -106,14 +117,19 @@ function appendMessage(message, type) {
     chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
 }
 
-
-// Adjusted event listener
 document.getElementById('sendButton').addEventListener('click', async function () {
     const userInput = document.getElementById('userInput');
     const message = userInput.value;
 
     if (message.trim() !== "") {
-        appendMessage('You: ' + message, 'user'); // Send as user message
+        appendMessage('You: ' + message, 'user');
+        context.push(`You: ${message}`); // Store user input in context
+
+        // Limit context length to MAX_CONTEXT_LENGTH
+        if (context.length > MAX_CONTEXT_LENGTH) {
+            context.shift(); // Remove the oldest entry if context exceeds the limit
+        }
+
         userInput.value = ''; // Clear the input
 
         try {
@@ -122,13 +138,21 @@ document.getElementById('sendButton').addEventListener('click', async function (
                 headers: {
                     'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ input: message }),
+                body: JSON.stringify({ input: message, context: context.join('\n') }), // Send trimmed context
             });
 
             await handleBotResponse(response); // Handle the bot response
         } catch (error) {
             console.error('Error:', error);
-            appendMessage('Sorry, there was an error.', 'bot'); // Send error message
+            appendMessage('Sorry, there was an error.', 'bot'); // Display error message
         }
     }
 });
+
+
+async function handleBotResponse(response) {
+    const text = await response.json(); // Adjusted to parse JSON
+    const botResponse = text.response;
+
+    appendMessage(botResponse, 'bot'); // Append the bot response directly
+}

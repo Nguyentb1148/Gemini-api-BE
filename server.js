@@ -16,31 +16,45 @@ const genAI = new GoogleGenerativeAI(process.env.API_KEY);
 
 app.post("/api/chat", async (req, res) => {
     const userInput = req.body.input;
+    const context = req.body.context; // Get context from request
     const model = genAI.getGenerativeModel({ model: "gemini-pro" });
     const start = Date.now();
-    let responseText = ""; // Initialize an empty string to accumulate responses
+    let responseText = "";
 
     try {
-        // Using generateContentStream to collect all parts into one string
-        const result = await model.generateContentStream([userInput]);
+        const prompt = `${context}\nYou: ${userInput}\n`; // Create a prompt with context
+        const result = await model.generateContentStream([prompt]);
 
-        // Collect all chunks into responseText
         for await (const chunk of result.stream) {
-            responseText += chunk.text(); // Concatenate text from each chunk
+            responseText += chunk.text();
         }
 
-        // Send the complete response once all chunks are processed
-        res.json({ response: responseText });
+        // Format the response to avoid repeating previous answers
+        const formattedResponse = formatResponse(responseText);
+        res.json({ response: formattedResponse });
 
-        console.log("Full Response:", responseText);
-
+        console.log("Full Response:", formattedResponse);
         const end = Date.now();
         console.log("Response time (ms):", end - start);
     } catch (error) {
         console.error("Error:", error);
-        res.status(500).json({ error: "Internal Server Error" }); // hi
+        res.status(500).json({ error: "Internal Server Error" });
     }
 });
+
+let lastResponse = ""; // Tracks the previous response to avoid repetition
+
+function formatResponse(responseText) {
+    const cleanedResponse = responseText
+        .replace(lastResponse, "") // Remove any repeated text from the last response
+        .replace(/You:/g, "") // Optionally remove the "You:" text in responses
+        .trim(); // Clean up extra spaces
+
+    lastResponse = cleanedResponse; // Update last response
+    return cleanedResponse;
+}
+
+
 // Start the server
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
