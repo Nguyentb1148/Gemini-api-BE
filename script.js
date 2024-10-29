@@ -105,15 +105,72 @@ function appendMessage(message, type) {
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
 }
+async function fetchConversations(userId) {
+    try {
+        console.log('Start fetching data from MongoDB');
+        const response = await fetch(`/api/conversations/${userId}`); // Use a relative URL
+        const conversations = await response.json();
+        console.log('Fetched conversations:', conversations); // Log the fetched conversations for debugging
+
+        const conversationHistory = document.getElementById('conversationHistory');
+        conversationHistory.innerHTML = ''; // Clear previous history
+
+        // Check if conversations is an array
+        if (Array.isArray(conversations)) {
+            // Iterate through the conversations and create elements for each
+            conversations.forEach(conversation => {
+                // Ensure each conversation object has the expected properties
+                if (conversation.input && conversation.response) {
+                    const messageElement = document.createElement('div');
+                    messageElement.classList.add('conversation-message'); // Optional class for styling
+                    messageElement.innerHTML = `<strong>You:</strong> ${conversation.input}<br /><strong>Bot:</strong> ${conversation.response}`;
+                    conversationHistory.appendChild(messageElement);
+                } else {
+                    console.warn('Invalid conversation object:', conversation);
+                }
+            });
+        } else {
+            console.error('Expected an array of conversations, but received:', conversations);
+        }
+
+        // Update session list
+        updateSessionList(conversations);
+    } catch (error) {
+        console.error('Error fetching conversation history:', error);
+    }
+}
 
 
-// Adjusted event listener
-document.getElementById('sendButton').addEventListener('click', async function () {
+
+function updateSessionList(conversations) {
+    const sessionList = document.getElementById('sessionList');
+    sessionList.innerHTML = ''; // Clear previous sessions
+
+    // Create a unique list of session IDs
+    const sessionIds = new Set(conversations.map(conversation => conversation.sessionId));
+
+    sessionIds.forEach(sessionId => {
+        const sessionElement = document.createElement('div');
+        sessionElement.classList.add('session-item'); // Optional class for styling
+        sessionElement.textContent = sessionId; // Display session ID
+        sessionList.appendChild(sessionElement);
+    });
+}
+
+document.addEventListener('DOMContentLoaded', async () => {
+    const userId = 'tranbaonguyen'; // Set the userId for fetching conversations
+    await fetchConversations(userId); // Fetch and display conversation history on page load
+});
+
+// Update the event listener for sending messages
+document.getElementById('sendButton').addEventListener('click', async function (event) {
+    event.preventDefault(); // Prevent the default button behavior
+
     const userInput = document.getElementById('userInput');
     const message = userInput.value;
-
+    
     if (message.trim() !== "") {
-        appendMessage('You: ' + message, 'user'); // Send as user message
+        appendMessage('You: ' + message, 'user'); // Display user's message
         userInput.value = ''; // Clear the input
 
         try {
@@ -125,10 +182,10 @@ document.getElementById('sendButton').addEventListener('click', async function (
                 body: JSON.stringify({ input: message }),
             });
 
-            await handleBotResponse(response); // Handle the bot response
+            await handleBotResponse(response); // Handle bot response
         } catch (error) {
             console.error('Error:', error);
-            appendMessage('Sorry, there was an error.', 'bot'); // Send error message
+            appendMessage('Sorry, there was an error.', 'bot'); // Display error message
         }
     }
 });

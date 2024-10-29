@@ -13,16 +13,22 @@
         <header class="chat-header">
             <h2>Chatbot</h2>
         </header>
+        <aside class="conversation-history" id="conversationHistory">
+            <!-- Conversation history will be populated here -->
+        </aside>
+        <aside class="session-list" id="sessionList">
+            <!-- Session IDs will be populated here -->
+        </aside>
         <div class="chat-messages" id="chatMessages">
             <!-- Chat messages will be appended here -->
         </div>
         <div class="chat-input">
             <input type="text" id="userInput" placeholder="Type your message..." />
-            <button id="sendButton">Send</button>
+            <button id="sendButton" type="button">Send</button>
         </div>
     </div>
     <script src="script.js"></script>
-    <script src="codeFormatter.js"></script> <!-- Include the new file -->
+    <script src="codeFormatter.js"></script>
     <script>
         // Initialize highlight.js
         hljs.initHighlightingOnLoad();

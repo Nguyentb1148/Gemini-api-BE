@@ -150,3 +150,35 @@ body {
 pre {
     margin: 0; /* Remove default margin from <pre> */
 }
+.chat-container {
+    display: flex; /* Use flexbox to layout chat container */
+}
+
+.conversation-history {
+    width: 25%; /* Adjust width as needed */
+    padding: 10px;
+    border-right: 1px solid #ccc; /* Optional styling */
+    overflow-y: auto; /* Allow scrolling */
+}
+
+.session-list {
+    width: 20%; /* Width for the session ID sidebar */
+    padding: 10px;
+    border-right: 1px solid #ccc; /* Optional styling */
+    overflow-y: auto; /* Allow scrolling */
+}
+
+.chat-messages {
+    flex-grow: 1; /* Allow chat messages to take remaining space */
+    height: 400px;
+    overflow-y: auto;
+    padding: 15px;
+    border-bottom: 1px solid #ccc;
+    background-color: #f9f9f9;
+}
+
+
+.chat-header, .chat-input {
+    flex: 1; /* Allow chat header and messages to take remaining space */
+    padding: 10px;
+}
