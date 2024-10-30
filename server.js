@@ -1,7 +1,6 @@
 const express = require("express");
 const cors = require("cors");
 const { GoogleGenerativeAI } = require("@google/generative-ai");
-const tiktoken = require("tiktoken");
 const dotenv = require("dotenv");
 const { MongoClient, ServerApiVersion } = require("mongodb");
 
@@ -26,72 +25,44 @@ const client = new MongoClient(mongoUrl, {
     }
 });
 
-// Function to check and initialize MongoDB database and collection
+// Function to connect to MongoDB
 async function connectDB() {
     try {
-        console.log("Connecting to MongoDB at:", mongoUrl);
+        console.log("Connecting to MongoDB.");
         await client.connect();
         console.log("Connected to MongoDB");
-
-        // Check if the database and collection exist, and create if necessary
-        const database = client.db("conversationHistory");
-        const collection = database.collection("conversation");
-
-        // Check if collection exists by listing collections
-        const collections = await database.listCollections().toArray();
-        const collectionExists = collections.some(coll => coll.name === "conversation");
-
-        if (!collectionExists) {
-            await database.createCollection("conversation");
-            console.log("Collection 'conversation' created in MongoDB.");
-        } else {
-            console.log("Collection 'conversation' already exists in MongoDB.");
-        }
-
-        // Log all existing conversations
-        await logAllConversations();
-
     } catch (error) {
         console.error("Error connecting to MongoDB:", error);
     }
 }
 
-async function logAllConversations() {
+const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+// Function to fetch conversation history for a given sessionId
+async function fetchConversationHistory(sessionId) {
     const database = client.db("conversationHistory");
     const collection = database.collection("conversation");
-
+    
     try {
-        const conversations = await collection.find({}).toArray();
-        console.log("Existing conversations in the 'conversation' collection:");
+        // Use find() to get all conversations with the specified sessionId
+        const conversations = await collection.find({ sessionId }).toArray();
+        // Log all conversations fetched from MongoDB
+        console.log("Fetched conversations:", JSON.stringify(conversations, null, 2));
         
-        // Log each conversation with expanded messages
-        conversations.forEach(conversation => {
-            console.log(`Session ID: ${conversation.sessionId}`);
-            console.log(`User ID: ${conversation.userId}`);
-            console.log(`Timestamp: ${conversation.timestamp}`);
-            console.log("Messages:");
-            conversation.messages.forEach(message => {
-                console.log(` - [${message.role}] ${message.text}`);
-            });
-            console.log(); // Add a blank line for better readability
-        });
+        // Combine messages from all conversations
+        return conversations.flatMap(conversation => conversation.messages);
     } catch (error) {
-        console.error("Error fetching conversations:", error);
+        console.error("Error fetching conversation history:", error);
+        return [];
     }
 }
 
-
-// Function to generate a random 8-character string
-function generateRandomString(length) {
-    return Math.random().toString(36).substr(2, length);
-}
 
 // Function to insert data into MongoDB with structured format
 async function insertData(userId, sessionId, userInput, modelResponse) {
     const database = client.db("conversationHistory");
     const collection = database.collection("conversation");
 
-    // Format message structure
     const messageData = {
         sessionId,
         userId,
@@ -110,28 +81,54 @@ async function insertData(userId, sessionId, userInput, modelResponse) {
     }
 }
 
+// Function to generate a random 8-character string
+function generateRandomString(length) {
+    return Math.random().toString(36).substr(2, length);
+}
+
 app.post("/api/chat", async (req, res) => {
-    const userInput = req.body.input;
-    const userId = 'defaultUser'; // Default userId
-    const sessionId = 'defaultSession'; // Default sessionId
+    const userInput = req.body.input; // User input from the request
+    const userId = 'defaultUser';
+    const sessionId = 'defaultSession';
     let responseText = "";
 
     try {
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-        const result = await model.generateContentStream([userInput]);
+        // Fetch conversation history
+        const conversationHistory = await fetchConversationHistory(sessionId);
+        
+        // Prepare the history for the chat model
+        const history = conversationHistory.map(message => ({
+            role: message.role,
+            parts: [{ text: message.text }]
+        }));
 
-        // Accumulate response text from the model
-        for await (const chunk of result.stream) {
-            responseText += chunk.text();
+        // Add the new user input to the history
+        history.push({
+            role: "user",
+            parts: [{ text: userInput }]
+        });
+
+        // Start chat with the combined history
+        const chat = model.startChat({
+            history, // Use the modified history
+            generationConfig: { maxOutputTokens: 100 },
+        });
+
+        const result = await chat.sendMessage(userInput); // Send message
+
+        // Access the response text correctly
+        if (result && result.response && result.response.candidates) {
+            responseText = result.response.candidates[0].content.parts[0].text || "No response text found.";
+        } else {
+            responseText = "I'm not sure how to respond.";
         }
 
-        // Insert structured data into MongoDB
+        // Insert data into MongoDB
         await insertData(userId, sessionId, userInput, responseText);
-
-        // Send the response to the client
         res.json({ response: responseText });
     } catch (error) {
-        console.error("Error:", error);
+        console.error("Error:", error.message);
+        console.error(error.stack);
         res.status(500).json({ error: "Internal Server Error" });
     }
 });
