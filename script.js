@@ -46,7 +46,6 @@ function createCodeSnippet(language, code) {
     return codeSnippetContainer;
 }
 
-
 function formatGeminiResponse(responseText) {
     const responseContainer = document.createElement('div');
     responseContainer.classList.add('bot-message');
@@ -88,7 +87,6 @@ function formatGeminiResponse(responseText) {
 
     return responseContainer;
 }
-
 function appendMessage(message, type) {
     const chatMessages = document.getElementById('chatMessages');
     const messageElement = document.createElement('div');
@@ -105,87 +103,83 @@ function appendMessage(message, type) {
     chatMessages.appendChild(messageElement);
     chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
 }
-async function fetchConversations(userId) {
+async function fetchConversations() {
     try {
-        console.log('Start fetching data from MongoDB');
-        const response = await fetch(`/api/conversations/${userId}`); // Use a relative URL
-        const conversations = await response.json();
-        console.log('Fetched conversations:', conversations); // Log the fetched conversations for debugging
-
-        const conversationHistory = document.getElementById('conversationHistory');
-        conversationHistory.innerHTML = ''; // Clear previous history
-
-        // Check if conversations is an array
-        if (Array.isArray(conversations)) {
-            // Iterate through the conversations and create elements for each
-            conversations.forEach(conversation => {
-                // Ensure each conversation object has the expected properties
-                if (conversation.input && conversation.response) {
-                    const messageElement = document.createElement('div');
-                    messageElement.classList.add('conversation-message'); // Optional class for styling
-                    messageElement.innerHTML = `<strong>You:</strong> ${conversation.input}<br /><strong>Bot:</strong> ${conversation.response}`;
-                    conversationHistory.appendChild(messageElement);
-                } else {
-                    console.warn('Invalid conversation object:', conversation);
-                }
-            });
-        } else {
-            console.error('Expected an array of conversations, but received:', conversations);
+        console.log('Start fetching conversation summaries from MongoDB');
+        const response = await fetch('http://localhost:3000/api/conversations/summary');
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
         }
 
-        // Update session list
+        const conversations = await response.json();
+        console.log('Fetched conversation summaries:', conversations);
+
+        const conversationHistory = document.getElementById('sessionList');
+        conversationHistory.innerHTML = ''; // Clear previous history
+
+        // Update the session list with the fetched conversations
         updateSessionList(conversations);
     } catch (error) {
-        console.error('Error fetching conversation history:', error);
+        console.error('Error fetching conversation summaries:', error);
     }
 }
-
-
 
 function updateSessionList(conversations) {
     const sessionList = document.getElementById('sessionList');
     sessionList.innerHTML = ''; // Clear previous sessions
 
-    // Create a unique list of session IDs
-    const sessionIds = new Set(conversations.map(conversation => conversation.sessionId));
+    console.log('Conversations to display:', conversations); // Check the data
 
-    sessionIds.forEach(sessionId => {
-        const sessionElement = document.createElement('div');
-        sessionElement.classList.add('session-item'); // Optional class for styling
-        sessionElement.textContent = sessionId; // Display session ID
-        sessionList.appendChild(sessionElement);
-    });
-}
+    // Ensure conversations is an array
+    if (Array.isArray(conversations)) {
+        conversations.forEach(conversation => {
+            const sessionElement = document.createElement('li');
+            sessionElement.textContent = conversation._id || 'No ID'; // Ensure something is displayed
 
-document.addEventListener('DOMContentLoaded', async () => {
-    const userId = 'tranbaonguyen'; // Set the userId for fetching conversations
-    await fetchConversations(userId); // Fetch and display conversation history on page load
-});
+            // Optional: Log for each session element created
+            console.log('Creating session element:', sessionElement.textContent);
 
-// Update the event listener for sending messages
-document.getElementById('sendButton').addEventListener('click', async function (event) {
-    event.preventDefault(); // Prevent the default button behavior
-
-    const userInput = document.getElementById('userInput');
-    const message = userInput.value;
-    
-    if (message.trim() !== "") {
-        appendMessage('You: ' + message, 'user'); // Display user's message
-        userInput.value = ''; // Clear the input
-
-        try {
-            const response = await fetch('http://localhost:3000/api/chat', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ input: message }),
-            });
-
-            await handleBotResponse(response); // Handle bot response
-        } catch (error) {
-            console.error('Error:', error);
-            appendMessage('Sorry, there was an error.', 'bot'); // Display error message
-        }
+            sessionList.appendChild(sessionElement);
+        });
+    } else {
+        console.warn('Conversations is not an array:', conversations);
     }
+}
+document.addEventListener('DOMContentLoaded', async () => {
+    await fetchConversations(); // Fetch and display conversation history on page load
+
+    // Update the event listener for sending messages
+    document.getElementById('sendButton').addEventListener('click', async function (event) {
+        event.preventDefault(); // Prevent the default button behavior
+
+        const userInput = document.getElementById('userInput');
+        const message = userInput.value.trim(); // Trim whitespace
+
+        if (message !== "") {
+            appendMessage('You: ' + message, 'user'); // Display user's message
+            userInput.value = ''; // Clear the input
+
+            try {
+                const response = await fetch('http://localhost:3000/api/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ input: message }),
+                });
+
+                await handleBotResponse(response); // Handle bot response
+            } catch (error) {
+                console.error('Error:', error);
+                appendMessage('Sorry, there was an error.', 'bot'); // Display error message
+            }
+        }
+    });
+
+    // Get all session items and add click event listeners after fetching conversations
+    const sessionListItems = document.querySelectorAll('.session-list li');
+    sessionListItems.forEach(item => {
+        item.addEventListener('click', logSessionClick);
+    });
 });

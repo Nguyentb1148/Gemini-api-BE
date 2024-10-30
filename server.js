@@ -47,7 +47,7 @@ async function fetchConversationHistory(sessionId) {
         // Use find() to get all conversations with the specified sessionId
         const conversations = await collection.find({ sessionId }).toArray();
         // Log all conversations fetched from MongoDB
-        console.log("Fetched conversations:", JSON.stringify(conversations, null, 2));
+        // console.log("Fetched conversations:", JSON.stringify(conversations, null, 2));
         
         // Combine messages from all conversations
         return conversations.flatMap(conversation => conversation.messages);
@@ -57,39 +57,72 @@ async function fetchConversationHistory(sessionId) {
     }
 }
 
-
-// Function to insert data into MongoDB with structured format
+// Function to insert or update conversation data in MongoDB
 async function insertData(userId, sessionId, userInput, modelResponse) {
     const database = client.db("conversationHistory");
     const collection = database.collection("conversation");
 
-    const messageData = {
-        sessionId,
-        userId,
-        messages: [
-            { id: generateRandomString(8), role: "user", text: userInput },
-            { id: generateRandomString(8), role: "model", text: modelResponse },
-        ],
-        timestamp: new Date().toISOString(),
-    };
+    const newMessages = [
+        { id: generateRandomString(8), role: "user", text: userInput },
+        { id: generateRandomString(8), role: "model", text: modelResponse },
+    ];
 
     try {
-        const result = await collection.insertOne(messageData);
-        console.log("Data inserted with id:", result.insertedId);
+        const result = await collection.updateOne(
+            { sessionId, userId }, // Find the document with matching sessionId and userId
+            {
+                $push: { messages: { $each: newMessages } }, // Append new messages to the messages array
+                $setOnInsert: { timestamp: new Date().toISOString() } // Set timestamp only if a new document is created
+            },
+            { upsert: true } // Create a new document if no match is found
+        );
+        
+        if (result.upsertedId) {
+            console.log("New session created with id:", result.upsertedId);
+        } else {
+            console.log("Existing session updated");
+        }
     } catch (error) {
-        console.error("Error inserting data:", error);
+        console.error("Error inserting or updating data:", error);
     }
 }
+
 
 // Function to generate a random 8-character string
 function generateRandomString(length) {
     return Math.random().toString(36).substr(2, length);
 }
+app.get('/api/conversations/summary', async (req, res) => {
+    try {
+        const Conversation = client.db("conversationHistory").collection("conversation");
+
+        const summaries = await Conversation.aggregate([
+            {
+                $group: {
+                    _id: "$sessionId",
+                    userId: { $first: "$userId" },
+                    messageCount: { $sum: { $size: "$messages" } },
+                    timestamp: { $first: "$timestamp" },
+                }
+            }
+        ]).toArray(); // Add .toArray() to aggregate results
+
+        if (summaries.length === 0) {
+            console.warn("No summaries found.");
+        }
+
+        // console.log('Aggregated summaries:', summaries);
+        res.json(summaries);
+    } catch (error) {
+        console.error('Error fetching conversation summaries:', error);
+        res.status(500).json({ error: 'Internal server error', details: error.message });
+    }
+});
 
 app.post("/api/chat", async (req, res) => {
     const userInput = req.body.input; // User input from the request
-    const userId = 'defaultUser';
-    const sessionId = 'defaultSession';
+    const userId = 'defaultUser456';
+    const sessionId = 'defaultSession456';
     let responseText = "";
 
     try {
@@ -111,7 +144,7 @@ app.post("/api/chat", async (req, res) => {
         // Start chat with the combined history
         const chat = model.startChat({
             history, // Use the modified history
-            generationConfig: { maxOutputTokens: 100 },
+            generationConfig: { maxOutputTokens: 1000 },
         });
 
         const result = await chat.sendMessage(userInput); // Send message

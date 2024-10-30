@@ -10,21 +10,24 @@
 </head>
 <body>
     <div class="chat-container">
-        <header class="chat-header">
-            <h2>Chatbot</h2>
-        </header>
-        <aside class="conversation-history" id="conversationHistory">
-            <!-- Conversation history will be populated here -->
-        </aside>
-        <aside class="session-list" id="sessionList">
-            <!-- Session IDs will be populated here -->
-        </aside>
-        <div class="chat-messages" id="chatMessages">
-            <!-- Chat messages will be appended here -->
+        <div class="sidebar">
+            <h3>Sessions</h3>
+            
+            <ul class="session-list" id="sessionList">
+                <!-- Session IDs will be dynamically generated here -->
+            </ul>            
         </div>
-        <div class="chat-input">
-            <input type="text" id="userInput" placeholder="Type your message..." />
-            <button id="sendButton" type="button">Send</button>
+        <div class="chat-area">
+            <header class="chat-header">
+                <h2>Chatbot</h2>
+            </header>
+            <div class="chat-messages" id="chatMessages">
+                <!-- Chat messages will be dynamically generated here -->
+            </div>
+            <div class="chat-input">
+                <input type="text" id="userInput" placeholder="Type your message..." />
+                <button id="sendButton" type="button">Send</button>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
